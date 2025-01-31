@@ -105,11 +105,6 @@ class MyAction: AnAction() {
 
                 val librariesIndex = doc.text.indexOf("[plugins]")
                 if (librariesIndex != -1 && !doc.text.contains(tomlEntry)) {
-                    Messages.showMessageDialog(
-                        project,
-                        "$tomlEntryToAdd",
-                        "Error",
-                        Messages.getInformationIcon())
                     doc.insertString(librariesIndex-1, tomlEntryToAdd)
                 }
             }
