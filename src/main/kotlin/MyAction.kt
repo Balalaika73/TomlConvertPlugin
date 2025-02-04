@@ -12,20 +12,23 @@ import java.io.File
 class MyAction: AnAction() {
     private var fileToml : VirtualFile? = null
     private var filePluginProject : VirtualFile? = null
-    private var filePluginModule : VirtualFile? = null
+    private var fileModuleProject : VirtualFile? = null
     private lateinit var project: Project
 
     override fun actionPerformed(e: AnActionEvent) {
         project = e.project ?: return
         fileToml = findFileInProject("gradle/libs.versions.toml")
         filePluginProject = findFileInProject("build.gradle.kts")
-        filePluginModule = findFileInProject("app/build.gradle.kts")
-        if (filePluginProject != null && fileToml != null && filePluginModule != null) {
-            // Прочитать содержимое файла
+        fileModuleProject = findFileInProject("app/build.gradle.kts")
+        if (filePluginProject != null && fileToml != null && fileModuleProject != null) {
+            // read files
             checkFile(e, filePluginProject!!,
                 {it.contains("id(")},
                 { convertProjectPluginToToml(it)})
-            checkFile(e, filePluginModule!!,
+            checkFile(e, fileModuleProject!!,
+                {it.contains("id(")},
+                { removeLine(fileModuleProject, it)})
+            checkFile(e, fileModuleProject!!,
                 {it.contains("implementation(\"")},
                 { convertModuleToToml(it)})
         } else {
@@ -52,15 +55,14 @@ class MyAction: AnAction() {
 
         val implId = nameImpl.replace('-', '.')
 
-        // Перенос в TOML и удаление из оригинального файла
         writeModuleToToml(resString, versName, implId)
-        removeLine(filePluginModule, line)
+        removeLine(fileModuleProject, line)
     }
 
     private fun writePluginToToml(tomlEntry: String, versionLine: String, pluginId: String) {
         val tomlDocument = fileToml?.let { FileDocumentManager.getInstance().getDocument(it) }
         val pluginDocument = filePluginProject?.let { FileDocumentManager.getInstance().getDocument(it) }
-        val moduleDocument = filePluginModule?.let { FileDocumentManager.getInstance().getDocument(it) }
+        val moduleDocument = fileModuleProject?.let { FileDocumentManager.getInstance().getDocument(it) }
 
         WriteCommandAction.runWriteCommandAction(project) {
             tomlDocument!!.let { doc ->
@@ -91,7 +93,7 @@ class MyAction: AnAction() {
 
     private fun writeModuleToToml(tomlEntry: String, versionLine: String, pluginId: String) {
         val tomlDocument = fileToml?.let { FileDocumentManager.getInstance().getDocument(it) }
-        val moduleDocument = filePluginModule?.let { FileDocumentManager.getInstance().getDocument(it) }
+        val moduleDocument = fileModuleProject?.let { FileDocumentManager.getInstance().getDocument(it) }
 
         WriteCommandAction.runWriteCommandAction(project) {
             tomlDocument?.let { doc ->
@@ -120,7 +122,7 @@ class MyAction: AnAction() {
         }
     }
 
-    fun removeLine(file: VirtualFile?, lineToRemove: String) {
+    private fun removeLine(file: VirtualFile?, lineToRemove: String) {
         file?.let {
             FileDocumentManager.getInstance().getDocument(it)
         }?.let { doc ->
@@ -131,13 +133,13 @@ class MyAction: AnAction() {
         }
     }
 
-    fun checkFile(e: AnActionEvent, file: VirtualFile, filterCondition: (String) -> Boolean, transform: (String) -> Unit) {
+    private fun checkFile(e: AnActionEvent, file: VirtualFile, filterCondition: (String) -> Boolean, transform: (String) -> Unit) {
         val content = readFileContent(file)
 
         if (!content.isNullOrEmpty()) {
             content.lines()
-                .filter(filterCondition) // Фильтруем строки по переданному условию
-                .forEach(transform) // Выполняем переданное преобразование
+                .filter(filterCondition)
+                .forEach(transform)
         } else {
             showError(e, "File is empty or cannot be read.")
         }
