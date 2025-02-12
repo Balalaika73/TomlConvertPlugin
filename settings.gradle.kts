@@ -4,5 +4,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+include(":plugin")
 
 rootProject.name = "ConvertToTomlVers"

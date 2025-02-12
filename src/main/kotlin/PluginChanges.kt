@@ -10,7 +10,7 @@ class PluginChanges(
     private val project: Project,
 ) {
     private val myAction = MyAction()
-    fun convertProjectPluginToToml(line: String) {
+    fun convertProjectPluginToToml(line: String, lineNumber: Int) {
         val pluginRegex = """id\("([^"]+)""".toRegex()
         val versionRegex = """version\s+"([^"]+)"""".toRegex()
 
@@ -30,12 +30,11 @@ class PluginChanges(
         val versionLine = versionValue?.let { "$pluginVersionName = \"$it\"" }
 
         if (versionLine != null) {
-            writePluginToToml(tomlEntry, versionLine, pluginId)
-            myAction.removeLine(filePluginProject, line)
+            writePluginToToml(lineNumber, tomlEntry, versionLine, pluginId)
         }
     }
 
-    private fun writePluginToToml(tomlEntry: String, versionLine: String, pluginId: String) {
+    private fun writePluginToToml(lineNumber : Int, tomlEntry: String, versionLine: String, pluginId: String) {
         val tomlDocument = fileToml?.let { FileDocumentManager.getInstance().getDocument(it) }
         val pluginDocument = filePluginProject?.let { FileDocumentManager.getInstance().getDocument(it) }
         val moduleDocument = fileModuleProject?.let { FileDocumentManager.getInstance().getDocument(it) }
@@ -43,17 +42,26 @@ class PluginChanges(
         WriteCommandAction.runWriteCommandAction(project) {
             tomlDocument!!.let { doc ->
                 val librariesIndex = doc.text.indexOf("[libraries]")
-                if (librariesIndex != -1) {
+                if (librariesIndex != -1 && !doc.text.contains(versionLine)) {
                     doc.insertString(librariesIndex, "\n$versionLine\n")
+                }
+                if (!doc.text.contains(tomlEntry)) {
                     doc.insertString(doc.textLength, "\n$tomlEntry")
                 }
             }
 
             pluginDocument!!.let { doc ->
-                val pluginsBlockEnd = doc.text.lastIndexOf("}")
-                if (pluginsBlockEnd != -1) {
-                    val aliasLine = "\n\talias(libs.plugins.$pluginId) apply false"
-                    doc.insertString(pluginsBlockEnd - 1, aliasLine)
+                val lines = doc.text.lines()
+
+                if (lineNumber in 1..lines.size){
+                    val startOffset = doc.getLineStartOffset(lineNumber - 1)
+                    val endOffset = doc.getLineEndOffset(lineNumber - 1)
+
+                    val aliasLine = "\talias(libs.plugins.$pluginId) apply false"
+                    if (!doc.text.contains(aliasLine))
+                        doc.replaceString(startOffset, endOffset, aliasLine)
+                    else
+                        doc.replaceString(startOffset, endOffset, "")
                 }
             }
 
@@ -61,7 +69,8 @@ class PluginChanges(
                 val pluginsBlockEnd = doc.text.indexOf("}")
                 if (pluginsBlockEnd != -1) {
                     val aliasLine = "\n\talias(libs.plugins.$pluginId)"
-                    doc.insertString(pluginsBlockEnd - 1, aliasLine)
+                    if (!doc.text.contains(aliasLine))
+                        doc.insertString(pluginsBlockEnd - 1, aliasLine)
                 }
             }
         }

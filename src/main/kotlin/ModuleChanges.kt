@@ -8,8 +8,7 @@ class ModuleChanges(
     private val fileModuleProject: VirtualFile,
     private val project: Project
 ) {
-    private val myAction = MyAction()
-    fun convertModuleToToml(line: String) {
+    fun convertModuleToToml(line: String, lineNumber: Int) {
         val implParts = line.split(':')
         val groupImpl = implParts[0].split('"')[1]
         val nameImpl = implParts[1]
@@ -22,22 +21,21 @@ class ModuleChanges(
 
         val implId = nameImpl.replace('-', '.')
 
-        writeModuleToToml(resString, versName, implId)
-        myAction.removeLine(fileModuleProject, line)
+        writeModuleToToml(lineNumber, resString, versName, implId)
     }
 
-    private fun writeModuleToToml(tomlEntry: String, versionLine: String, pluginId: String) {
+    private fun writeModuleToToml(lineNumber : Int, tomlEntry: String, versionLine: String, pluginId: String) {
         val tomlDocument = fileToml?.let { FileDocumentManager.getInstance().getDocument(it) }
         val moduleDocument = fileModuleProject?.let { FileDocumentManager.getInstance().getDocument(it) }
 
         WriteCommandAction.runWriteCommandAction(project) {
             tomlDocument?.let { doc ->
-                val versionLineToAdd = "\n$versionLine\n"
+                val versionLineToAdd = "\n$versionLine"
                 val tomlEntryToAdd = "\n$tomlEntry"
 
                 val versIndex = doc.text.indexOf("[libraries]")
                 if (versIndex != -1 && !doc.text.contains(versionLine)) {
-                    doc.insertString(versIndex, versionLineToAdd)
+                    doc.insertString(versIndex-1, versionLineToAdd)
                 }
 
                 val librariesIndex = doc.text.indexOf("[plugins]")
@@ -46,12 +44,24 @@ class ModuleChanges(
                 }
             }
 
-
             moduleDocument?.let { doc ->
-                val pluginsBlockEnd = doc.text.lastIndexOf("}")
-                if (pluginsBlockEnd != -1) {
-                    val aliasLine = "\n\timplementation(libs.$pluginId)"
-                    doc.insertString(pluginsBlockEnd - 1, aliasLine)
+                val lines = doc.text.lines()
+
+                if (lineNumber in 1..lines.size) {
+                    val startOffset = doc.getLineStartOffset(lineNumber - 1)
+                    val endOffset = doc.getLineEndOffset(lineNumber - 1)
+
+                    val originalLine = lines[lineNumber - 1]
+                    val aliasLine = if ("kapt(" in originalLine) {
+                        "\tkapt(libs.$pluginId)"
+                    } else {
+                        "\timplementation(libs.$pluginId)"
+                    }
+
+                    if (!doc.text.contains(aliasLine))
+                        doc.replaceString(startOffset, endOffset, aliasLine)
+                    else
+                        doc.replaceString(startOffset, endOffset, "")
                 }
             }
         }

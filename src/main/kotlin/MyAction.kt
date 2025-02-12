@@ -10,13 +10,12 @@ import com.intellij.psi.PsiManager
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.getKoin
-import org.koin.java.KoinJavaComponent.inject
 import java.io.File
 
 class MyAction: AnAction() {
 
     private val pluginString = "id("
-    private val kaptString = "kapt("
+    private val kaptString = "kapt(\""
     private val moduleString = "implementation(\""
     private val runtimeOnlyString = "runtimeOnly(\""
     private var fileToml : VirtualFile? = null
@@ -47,16 +46,16 @@ class MyAction: AnAction() {
             // read files
             checkFile(e, filePluginProject!!,
                 {it.contains(pluginString) && !it.contains("kapt")},
-                { pluginChanges.convertProjectPluginToToml(it)})
+                { line, lineNumber -> pluginChanges.convertProjectPluginToToml(line, lineNumber)})
             checkFile(e, fileModuleProject!!,
                 {it.contains(pluginString)&& !it.contains("kapt")},
-                { removeLine(fileModuleProject, it)})
+                { line, lineNumber -> removeLine(fileModuleProject, line)})
             checkFile(e, fileModuleProject!!,
                 {it.contains(moduleString) ||
                         it.contains(runtimeOnlyString) ||
                         it.contains(kaptString)
                 },
-                { moduleChanges.convertModuleToToml(it)})
+                { line, lineNumber -> moduleChanges.convertModuleToToml(line, lineNumber)})
         } else {
             showError(e, "File not found")
         }
@@ -68,7 +67,7 @@ class MyAction: AnAction() {
         return VfsUtil.findFileByIoFile(targetFile, true)
     }
 
-    fun removeLine(file: VirtualFile?, lineToRemove: String) {
+    private fun removeLine(file: VirtualFile?, lineToRemove: String) {
         file?.let {
             FileDocumentManager.getInstance().getDocument(it)
         }?.let { doc ->
@@ -79,13 +78,14 @@ class MyAction: AnAction() {
         }
     }
 
-    private fun checkFile(e: AnActionEvent, file: VirtualFile, filterCondition: (String) -> Boolean, transform: (String) -> Unit) {
+    private fun checkFile(e: AnActionEvent, file: VirtualFile, filterCondition: (String) -> Boolean, transform: (String, Int) -> Unit) {
         val content = readFileContent(file)
 
         if (!content.isNullOrEmpty()) {
             content.lines()
-                .filter(filterCondition)
-                .forEach(transform)
+                .mapIndexed { index, line -> index to line }
+                .filter { (_, line) -> filterCondition(line) }
+                .forEach { (index, line) -> transform(line, index + 1) }
         } else {
             showError(e, "File is empty or cannot be read.")
         }
