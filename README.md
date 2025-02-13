@@ -5,10 +5,10 @@ The **Convert to TOML Plugin** for IntelliJ IDEA allows you to quickly convert d
 ## Installation
 
 To install the plugin, follow these steps:
-1. Download the `.jar` plugin file from the [releases page](https://github.com/Balalaika73/TomlConvertPlugin/releases).
+1. Download the `.zip` plugin file from the [releases page](https://github.com/Balalaika73/TomlConvertPlugin/releases).
 2. In Android Studio, go to **File → Settings → Plugins**.
 3. Click on **Install Plugin from Disk...**.
-4. Select the downloaded `.jar` file.
+4. Select the downloaded `.zip` file.
 5. Restart Android Studio to activate the plugin.
 
 ## Usage
