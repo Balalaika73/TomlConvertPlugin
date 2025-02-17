@@ -22,10 +22,10 @@ Once the plugin is installed:
 
 ## Usage Example
 Before convert:
-![Before Convert](\img\BeforeConvert.png)
+![Before Convert](img/BeforeConvert.png)
 After convert:
-![After Convert](\img\ConvertRes.png)
-![After Convert Toml](\img\ConvertResToml.png)
+![After Convert](img/ConvertRes.png)
+![After Convert Toml](img/ConvertResToml.png)
 
 ## Compatibility
 
