@@ -20,6 +20,13 @@ Once the plugin is installed:
 4. Check the changes in the `build.gradle.kts` and `libs.version.toml` files.
 5. Click **Sync Now** to apply the changes.
 
+## Usage Example
+Before convert:
+![Before Convert](\img\BeforeConvert.png)
+After convert:
+![After Convert](\img\ConvertRes.png)
+![After Convert Toml](\img\ConvertResToml.png)
+
 ## Compatibility
 
 - IntelliJ IDEA version: 2024.1 and above (maybe)
