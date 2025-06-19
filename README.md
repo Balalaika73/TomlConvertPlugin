@@ -21,10 +21,17 @@ Once the plugin is installed:
 5. Click **Sync Now** to apply the changes.
 
 ## Usage Example
+
 Before convert:
+
 ![Before Convert](img/BeforeConvert.png)
+
 After convert:
+
 ![After Convert](img/ConvertRes.png)
+
+After Convert (TOML Format):
+
 ![After Convert Toml](img/ConvertResToml.png)
 
 ## Compatibility
