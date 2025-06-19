@@ -36,17 +36,42 @@ class MyAction(
             parametersOf(fileToml, fileModuleProject, project)
         }
 
-        processPluginsImplementation()
-        processLibrariesImplementation()
+        val pluginsList = getPluginsImplementations()
+        val librariesList = getLibrariesImplementations()
+
+        processPluginsImplementation(pluginsList)
+        processLibrariesImplementation(librariesList)
     }
 
-    fun processPluginsImplementation() {
-        val filePluginProjectConvent = gradleFiles.readFileContent(filePluginProject)
-        if (!filePluginProjectConvent.isNullOrEmpty()) {
-            val pluginsList = filePluginProjectConvent.lines()
-                .mapIndexed { index, line -> index to line }
-                .filter { (_, line) -> line.contains("id(\"") }
+    private fun getPluginsImplementations(): List<Pair<Int, String>> {
+        val fileContent = gradleFiles.readFileContent(filePluginProject) ?: return emptyList()
 
+        return fileContent.lines()
+            .mapIndexed { index, line -> index to line }
+            .filter { (_, line) -> line.contains("id(\"") }
+            .mapNotNull { (index, line) ->
+                // Извлекаем название плагина между кавычками
+                val pluginName = line.substringAfter("id(\"").substringBefore('"')
+                if (pluginName.isNotEmpty()) index to pluginName else null
+            }
+    }
+
+    private fun getLibrariesImplementations(): List<Pair<Int, String>> {
+        val fileContent = gradleFiles.readFileContent(fileModuleProject)
+
+        return fileContent.lines()
+            .mapIndexed { index, line -> index to line }
+            .filter { (_, line) ->
+                line.contains("implementation(\"") ||
+                        line.contains("testImplementation(\"") ||
+                        line.contains("androidTestImplementation(\"") ||
+                        line.contains("runtimeOnly(\"") ||
+                        line.contains("debugImplementation(\"") ||
+                        line.contains("ksp(\"")
+            }
+    }
+
+    fun processPluginsImplementation(pluginsList:  List<Pair<Int, String>>) {
             pluginsList.forEach { (index, line) ->
 
                     val pluginEntry = pluginGradle.createPluginEntry(line)
@@ -64,40 +89,25 @@ class MyAction(
                             "Создание плагина"
                         )
                     }
-                }
-        }
+            }
     }
 
-    fun processLibrariesImplementation() {
-        val fileLibraryProjectContent = gradleFiles.readFileContent(fileModuleProject)
-        if (!fileLibraryProjectContent.isNullOrEmpty()) {
-            val libreriesList = fileLibraryProjectContent.lines()
-                .mapIndexed { index, line -> index to line }
-                .filter { (_, line) ->
-                    line.contains("implementation(\"") ||
-                            line.contains("testImplementation(\"") ||
-                            line.contains("androidTestImplementation(\"") ||
-                            line.contains("runtimeOnly(\"") ||
-                            line.contains("debugImplementation(\"") ||
-                            line.contains("ksp(\"")
-                }
+    fun processLibrariesImplementation(libreriesList:  List<Pair<Int, String>>) {
+        libreriesList.forEach { (index, line) ->
+            val libraryEntry = libraryGradle.createLibraryEntry(line)
 
-            libreriesList.forEach { (index, line) ->
-                    val libraryEntry = libraryGradle.createLibraryEntry(line)
-
-                    try {
-                        WriteCommandAction.runWriteCommandAction(project) {
-                            libraryGradle.writeLibraryToToml(libraryEntry)
-                            libraryGradle.writeLibraryToModuleGradle(libraryEntry, index)
-                        }
-                    } catch (e: Exception) {
-                        Messages.showInfoMessage(
-                            project,
-                            "Ошибка ${e.message}",
-                            "Создание библиотеки"
-                        )
-                    }
+            try {
+                WriteCommandAction.runWriteCommandAction(project) {
+                    libraryGradle.writeLibraryToToml(libraryEntry)
+                    libraryGradle.writeLibraryToModuleGradle(libraryEntry, index)
                 }
+            } catch (e: Exception) {
+                Messages.showInfoMessage(
+                    project,
+                    "Ошибка ${e.message}",
+                    "Создание библиотеки"
+                )
+            }
         }
     }
 }
