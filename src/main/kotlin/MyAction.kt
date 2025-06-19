@@ -31,21 +31,8 @@ class MyAction(
                 .mapIndexed { index, line -> index to line } // сначала пронумеровали все строки
                 .filter { (_, line) -> line.contains("id(") } // потом отфильтровали
                 .forEach { (index, line) ->
-                    val lineNumber = index + 1
-
-                    Messages.showInfoMessage(
-                        project,
-                        "Обработка строки #$lineNumber:\n$line",
-                        "Найден id(...)"
-                    )
 
                     val pluginEntry = appGradle.createPluginEntry(line)
-
-                    Messages.showInfoMessage(
-                        project,
-                        "Создан PluginEntry:\n$pluginEntry",
-                        "Создание плагина"
-                    )
 
                     try {
                         WriteCommandAction.runWriteCommandAction(project){
