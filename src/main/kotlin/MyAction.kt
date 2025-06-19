@@ -9,6 +9,7 @@ import projectfiles.interfaces.PluginGradle
 import projectfiles.interfaces.GradleFiles
 import com.intellij.openapi.ui.Messages
 import projectfiles.interfaces.LibraryGradle
+import ui.ListDialog
 
 class MyAction(
 ): AnAction() {
@@ -39,8 +40,14 @@ class MyAction(
         val pluginsList = getPluginsImplementations()
         val librariesList = getLibrariesImplementations()
 
-        processPluginsImplementation(pluginsList)
-        processLibrariesImplementation(librariesList)
+        val dialog = ListDialog(librariesList, pluginsList)
+        if (dialog.showAndGet()) {
+            val selectedPlugins = dialog.getSelectedPlugins()
+            val selectedLibraries = dialog.getSelectedLibraries()
+
+            processPluginsImplementation(selectedPlugins)
+            processLibrariesImplementation(selectedLibraries)
+        }
     }
 
     private fun getPluginsImplementations(): List<Pair<Int, String>> {
