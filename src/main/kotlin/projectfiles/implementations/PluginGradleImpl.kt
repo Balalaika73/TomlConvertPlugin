@@ -1,14 +1,17 @@
 package projectfiles.implementations
 
 import com.intellij.openapi.editor.Document
+import com.intellij.openapi.project.Project
 import entries.PluginEntry
 import entries.VersionEntry
 import projectfiles.interfaces.PluginGradle
+import com.intellij.openapi.ui.Messages
 
 class PluginGradleImpl(
     private val fileToml: Document,
     private val fileModuleGradle: Document,
-    private val fileAppGradle: Document
+    private val fileAppGradle: Document,
+    private val project: Project
 ): PluginGradle {
     override fun getPluginId(line: String): String {
         val regex = Regex("""id\s*\(\s*["']([^"']+)["']\s*\)""")
@@ -18,19 +21,22 @@ class PluginGradleImpl(
 
     override fun getPluginVersion(line: String): String {
         val regex = Regex("""version\s*['"]([^'"]+)['"]""")
-        val version = regex.find(line)?.groupValues?.get(1)!!
+        val version = regex.find(line)?.groupValues?.get(1)
+            ?: throw IllegalArgumentException("Не удалось найти версию плагина в строке: $line")
         return version
     }
 
     override fun createPluginEntry(line: String): PluginEntry {
-        val id = getPluginId(line)
-        val versionNumb = getPluginVersion(line)
-        val name = createPluginName(id)
-        val versionName = "${id.substring(id.lastIndexOf('.') + 1)}Version"
-        val pluginVersion = VersionEntry(versionName, versionNumb)
-        val pluginEntry = PluginEntry(name, id, pluginVersion)
-
-        return pluginEntry
+        return try {
+            val id = getPluginId(line)
+            val versionNumb = getPluginVersion(line)
+            val name = createPluginName(id)
+            val versionName = "${id.substring(id.lastIndexOf('.') + 1)}Version"
+            val pluginVersion = VersionEntry(versionName, versionNumb)
+            PluginEntry(name, id, pluginVersion)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Ошибка создания PluginEntry из строки '$line': ${e.message}", e)
+        }
     }
 
     private fun createPluginName(pluginId: String): String {
@@ -63,26 +69,26 @@ class PluginGradleImpl(
 
     override fun writePluginToProjectGradle(pluginEntry: PluginEntry, lineIndex: Int) {
         val aliasLine = pluginEntry.convertToAliasLine()
-        val lines = fileAppGradle.text.lines()
+        try {
+            val startOffset = fileAppGradle.getLineStartOffset(lineIndex)
+            val endOffset = fileAppGradle.getLineEndOffset(lineIndex)
 
-        if (lineIndex in 1..lines.size) {
-            val targetLine = lines[lineIndex - 1]
-
-            val startOffset = fileAppGradle.getLineStartOffset(lineIndex - 1)
-            val endOffset = fileAppGradle.getLineEndOffset(lineIndex - 1)
-
-            if (targetLine != aliasLine && !fileAppGradle.text.contains(aliasLine)) {
-                fileAppGradle.replaceString(startOffset, endOffset, aliasLine)
-            } else if (targetLine == aliasLine) {
-                fileAppGradle.replaceString(startOffset, endOffset, "")
-            }
+            fileAppGradle.replaceString(startOffset, endOffset, aliasLine)
+        } catch (e: Exception) {
+            Messages.showErrorDialog(
+                project,
+                "Ошибка при замене строки: ${e.message}",
+                "Ошибка"
+            )
         }
     }
 
-    override fun writePluginToModuleGradle(pluginEntry: PluginEntry, lineIndex: Int) {
+    override fun writePluginToModuleGradle(pluginEntry: PluginEntry) {
         val text = fileModuleGradle.text
         val aliasLine = pluginEntry.convertToModuleAliasLine()
+        val pluginId = pluginEntry.pluginId
 
+        // Находим блок plugins
         val pluginsStart = text.indexOf("plugins")
         if (pluginsStart == -1) return
 
@@ -92,11 +98,18 @@ class PluginGradleImpl(
         val blockEnd = text.indexOf("}", blockStart)
         if (blockEnd == -1) return
 
-        if (text.contains(aliasLine)) return
+        val pluginPattern = Regex("""id\s*\(["']${Regex.escape(pluginId)}["']\)[^\n]*""")
+        val matchResult = pluginPattern.find(text, blockStart)
 
-        val insertPos = blockEnd
-        val withIndent = "$aliasLine\n" // 4 пробела — типичный отступ
-
-        fileModuleGradle.insertString(insertPos, withIndent)
+        if (matchResult != null) {
+            val start = matchResult.range.first
+            val end = matchResult.range.last + 1
+            fileModuleGradle.replaceString(start, end, aliasLine)
+        } else {
+            if (!text.contains(aliasLine)) {
+                val withIndent = "\t$aliasLine\n"
+                fileModuleGradle.insertString(blockEnd, withIndent)
+            }
+        }
     }
 }

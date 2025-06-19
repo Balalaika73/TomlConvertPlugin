@@ -13,8 +13,8 @@ import projectfiles.interfaces.LibraryGradle
 val appModule = module {
     factory<GradleFiles> { (project: Project) -> GradleFilesImpl(project) }
 
-    factory<PluginGradle> { (fileToml: Document, fileModuleGradle: Document, fileAppGradle: Document) ->
-        PluginGradleImpl(fileToml, fileModuleGradle, fileAppGradle)
+    factory<PluginGradle> { (fileToml: Document, fileModuleGradle: Document, fileAppGradle: Document, project: Project) ->
+        PluginGradleImpl(fileToml, fileModuleGradle, fileAppGradle, project)
     }
 
     factory<LibraryGradle> { (fileToml: Document, fileModuleGradle: Document, project: Project) ->

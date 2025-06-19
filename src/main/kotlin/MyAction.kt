@@ -8,6 +8,7 @@ import org.koin.java.KoinJavaComponent.getKoin
 import projectfiles.interfaces.PluginGradle
 import projectfiles.interfaces.GradleFiles
 import com.intellij.openapi.ui.Messages
+import entries.PluginEntry
 import projectfiles.interfaces.LibraryGradle
 import ui.ListDialog
 
@@ -54,13 +55,9 @@ class MyAction(
         val fileContent = gradleFiles.readFileContent(filePluginProject) ?: return emptyList()
 
         return fileContent.lines()
-            .mapIndexed { index, line -> index to line }
-            .filter { (_, line) -> line.contains("id(\"") }
-            .mapNotNull { (index, line) ->
-                // Извлекаем название плагина между кавычками
-                val pluginName = line.substringAfter("id(\"").substringBefore('"')
-                if (pluginName.isNotEmpty()) index to pluginName else null
-            }
+            .mapIndexed { index, line -> index to line.trim() }
+            .filter { (_, line) -> line.startsWith("id(") }
+            .map { (index, line) -> index to line }
     }
 
     private fun getLibrariesImplementations(): List<Pair<Int, String>> {
@@ -78,30 +75,42 @@ class MyAction(
             }
     }
 
-    fun processPluginsImplementation(pluginsList:  List<Pair<Int, String>>) {
+    private fun processPluginsImplementation(pluginsList: List<Pair<Int, String>>) {
+        val errors = mutableListOf<String>()
+
+        WriteCommandAction.runWriteCommandAction(project) {
             pluginsList.forEach { (index, line) ->
+                val pluginEntry = try {
+                    pluginGradle.createPluginEntry(line)
+                } catch (e: Exception) {
+                    errors.add("Ошибка создания плагина '$line': ${e.message}")
+                    return@forEach
+                }
 
-                    val pluginEntry = pluginGradle.createPluginEntry(line)
-
-                    try {
-                        WriteCommandAction.runWriteCommandAction(project){
-                            pluginGradle.writePluginToToml(pluginEntry)
-                            pluginGradle.writePluginToProjectGradle(pluginEntry, index+1)
-                            pluginGradle.writePluginToModuleGradle(pluginEntry, index+1)
-                        }
-                    } catch (e: Exception) {
-                        Messages.showInfoMessage(
-                            project,
-                            "Ошибка ${e.message}",
-                            "Создание плагина"
-                        )
-                    }
+                try {
+                    pluginGradle.writePluginToToml(pluginEntry)
+                    pluginGradle.writePluginToProjectGradle(pluginEntry, index)
+                    pluginGradle.writePluginToModuleGradle(pluginEntry)
+                } catch (e: Exception) {
+                    errors.add("Ошибка записи плагина '$line': ${e.message}")
+                }
             }
+        }
+
+        if (errors.isNotEmpty()) {
+            showError(errors)
+        }
     }
 
-    fun processLibrariesImplementation(libreriesList:  List<Pair<Int, String>>) {
+    private fun processLibrariesImplementation(libreriesList:  List<Pair<Int, String>>) {
+        val errors = mutableListOf<String>()
         libreriesList.forEach { (index, line) ->
-            val libraryEntry = libraryGradle.createLibraryEntry(line)
+            val libraryEntry = try {
+                libraryGradle.createLibraryEntry(line)
+            } catch (e: Exception) {
+                errors.add("Ошибка создания библиотеки '$line': ${e.message}")
+                return@forEach
+            }
 
             try {
                 WriteCommandAction.runWriteCommandAction(project) {
@@ -109,12 +118,19 @@ class MyAction(
                     libraryGradle.writeLibraryToModuleGradle(libraryEntry, index)
                 }
             } catch (e: Exception) {
-                Messages.showInfoMessage(
-                    project,
-                    "Ошибка ${e.message}",
-                    "Создание библиотеки"
-                )
+                errors.add("Ошибка создания библиотеки \n${e.message}")
             }
         }
+        if (errors.isNotEmpty()) {
+            showError(errors)
+        }
+    }
+
+    private fun showError(errors: MutableList<String>) {
+        Messages.showErrorDialog(
+            project,
+            "Произошли ошибки:\n${errors.joinToString("\n")}",
+            "Ошибки"
+        )
     }
 }

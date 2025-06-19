@@ -14,7 +14,7 @@ data class PluginEntry (
 
     fun convertToModuleAliasLine(): String {
         val appPluginName = pluginName.replace('-', '.')
-        return "\talias(libs.plugins.$appPluginName)"
+        return "alias(libs.plugins.$appPluginName)"
     }
 }
 
