@@ -3,13 +3,13 @@ package projectfiles.implementations
 import com.intellij.openapi.editor.Document
 import entries.PluginEntry
 import entries.VersionEntry
-import projectfiles.interfaces.AppGradle
+import projectfiles.interfaces.PluginGradle
 
-class AppGradleImpl(
+class PluginGradleImpl(
     private val fileToml: Document,
     private val fileModuleGradle: Document,
     private val fileAppGradle: Document
-): AppGradle {
+): PluginGradle {
     override fun getPluginId(line: String): String {
         val regex = Regex("""id\s*\(\s*["']([^"']+)["']\s*\)""")
         var pluginName = regex.find(line)?.groups?.get(1)?.value ?: "Unknown"

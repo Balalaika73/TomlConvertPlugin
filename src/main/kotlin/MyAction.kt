@@ -1,11 +1,10 @@
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.getKoin
-import projectfiles.interfaces.AppGradle
+import projectfiles.interfaces.PluginGradle
 import projectfiles.interfaces.GradleFiles
 import com.intellij.openapi.ui.Messages
 
@@ -21,7 +20,7 @@ class MyAction(
         val filePluginProject = gradleFiles.findFileInProject("build.gradle.kts")
         val fileModuleProject = gradleFiles.findFileInProject("app/build.gradle.kts")
 
-        val appGradle: AppGradle = getKoin().get<AppGradle> {
+        val pluginGradle: PluginGradle = getKoin().get<PluginGradle> {
             parametersOf(fileToml, fileModuleProject, filePluginProject, project)
         }
 
@@ -32,13 +31,13 @@ class MyAction(
                 .filter { (_, line) -> line.contains("id(") } // потом отфильтровали
                 .forEach { (index, line) ->
 
-                    val pluginEntry = appGradle.createPluginEntry(line)
+                    val pluginEntry = pluginGradle.createPluginEntry(line)
 
                     try {
                         WriteCommandAction.runWriteCommandAction(project){
-                            appGradle.writePluginToToml(pluginEntry)
-                            appGradle.writePluginToAppGradle(pluginEntry, index+1)
-                            appGradle.writePluginToModuleGradle(pluginEntry, index+1)
+                            pluginGradle.writePluginToToml(pluginEntry)
+                            pluginGradle.writePluginToAppGradle(pluginEntry, index+1)
+                            pluginGradle.writePluginToModuleGradle(pluginEntry, index+1)
                         }
                     } catch (e: Exception) {
                         Messages.showInfoMessage(

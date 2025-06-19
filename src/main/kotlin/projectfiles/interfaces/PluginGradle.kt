@@ -2,7 +2,7 @@ package projectfiles.interfaces
 
 import entries.PluginEntry
 
-interface AppGradle {
+interface PluginGradle {
     fun getPluginId(line: String): String
     fun getPluginVersion(line: String): String
     fun createPluginEntry(line: String): PluginEntry
