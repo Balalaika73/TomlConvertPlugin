@@ -13,14 +13,15 @@ class LibraryGradleImpl(
     private val project: Project
 ): LibraryGradle {
     override fun getDependencyType(line: String): String {
-        val regex = Regex("""^(implementation|testImplementation|androidTestImplementation)""")
+        val regex = Regex("""^\s*(implementation|testImplementation|androidTestImplementation|runtimeOnly|debugImplementation|ksp)\b""")
         return regex.find(line)?.groups?.get(1)?.value ?: "implementation"
     }
 
     override fun getLibraryString(line: String): String {
-        val regex = Regex("""(?:implementation|testImplementation|androidTestImplementation)\s*\(\s*["']([^"']+)["']\s*\)""")
-        val libraryName = regex.find(line)?.groups?.get(1)?.value ?: "Unknown"
-        return libraryName
+        val regex = Regex(
+            """\b(?:implementation|testImplementation|androidTestImplementation|runtimeOnly|debugImplementation|ksp|api|compileOnly|annotationProcessor)\s*\(\s*["']([^"']+)["']\s*\)"""
+        )
+        return regex.find(line)?.groups?.get(1)?.value ?: "Unknown"
     }
 
     override fun getLibraryGroup(line: String): String {

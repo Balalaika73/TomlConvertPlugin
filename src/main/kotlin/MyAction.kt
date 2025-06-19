@@ -33,7 +33,7 @@ class MyAction(
         if (!filePluginProjectConvent.isNullOrEmpty()) {
             filePluginProjectConvent.lines()
                 .mapIndexed { index, line -> index to line }
-                .filter { (_, line) -> line.contains("id(") }
+                .filter { (_, line) -> line.contains("id(\"") }
                 .forEach { (index, line) ->
 
                     val pluginEntry = pluginGradle.createPluginEntry(line)
@@ -61,15 +61,13 @@ class MyAction(
                 .filter { (_, line) ->
                     line.contains("implementation(\"") ||
                             line.contains("testImplementation(\"") ||
-                            line.contains("androidTestImplementation(\"")
+                            line.contains("androidTestImplementation(\"") ||
+                            line.contains("runtimeOnly(\"") ||
+                            line.contains("debugImplementation(\"") ||
+                            line.contains("ksp(\"")
                 }
                 .forEach { (index, line) ->
                     val libraryEntry = libraryGradle.createLibraryEntry(line)
-                    Messages.showInfoMessage(
-                        project,
-                        "Обработка строки #${index + 1}:\n$line",
-                        "Найден id(...)"
-                    )
 
                     try {
                         WriteCommandAction.runWriteCommandAction(project) {
