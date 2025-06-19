@@ -112,12 +112,6 @@ class LibraryGradleImpl(
             val endOffset = fileModuleGradle.getLineEndOffset(lineIndex)
 
             fileModuleGradle.replaceString(startOffset, endOffset, newLine)
-
-            Messages.showInfoMessage(
-                project,
-                "Заменено на строке #${lineIndex + 1}:\n$newLine",
-                "Успех"
-            )
         } catch (e: Exception) {
             Messages.showErrorDialog(
                 project,

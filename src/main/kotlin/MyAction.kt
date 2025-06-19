@@ -1,6 +1,7 @@
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent.getKoin
@@ -12,29 +13,41 @@ import projectfiles.interfaces.LibraryGradle
 class MyAction(
 ): AnAction() {
     private lateinit var project: Project
+    private lateinit var gradleFiles: GradleFiles
+    private lateinit var fileToml: Document
+    private lateinit var filePluginProject: Document
+    private lateinit var fileModuleProject: Document
+    private lateinit var libraryGradle: LibraryGradle
+    private lateinit var pluginGradle: PluginGradle
 
     override fun actionPerformed(e: AnActionEvent) {
         project = e.project ?: return
-        val gradleFiles: GradleFiles = getKoin().get { parametersOf(project) }
+        gradleFiles = getKoin().get { parametersOf(project) }
 
-        val fileToml = gradleFiles.findFileInProject("gradle/libs.versions.toml")
-        val filePluginProject = gradleFiles.findFileInProject("build.gradle.kts")
-        val fileModuleProject = gradleFiles.findFileInProject("app/build.gradle.kts")
+        fileToml = gradleFiles.findFileInProject("gradle/libs.versions.toml")
+        filePluginProject = gradleFiles.findFileInProject("build.gradle.kts")
+        fileModuleProject = gradleFiles.findFileInProject("app/build.gradle.kts")
 
-        val pluginGradle: PluginGradle = getKoin().get<PluginGradle> {
+        pluginGradle = getKoin().get<PluginGradle> {
             parametersOf(fileToml, fileModuleProject, filePluginProject, project)
         }
 
-        val libraryGradle: LibraryGradle = getKoin().get<LibraryGradle> {
+        libraryGradle = getKoin().get<LibraryGradle> {
             parametersOf(fileToml, fileModuleProject, project)
         }
 
+        processPluginsImplementation()
+        processLibrariesImplementation()
+    }
+
+    fun processPluginsImplementation() {
         val filePluginProjectConvent = gradleFiles.readFileContent(filePluginProject)
         if (!filePluginProjectConvent.isNullOrEmpty()) {
-            filePluginProjectConvent.lines()
+            val pluginsList = filePluginProjectConvent.lines()
                 .mapIndexed { index, line -> index to line }
                 .filter { (_, line) -> line.contains("id(\"") }
-                .forEach { (index, line) ->
+
+            pluginsList.forEach { (index, line) ->
 
                     val pluginEntry = pluginGradle.createPluginEntry(line)
 
@@ -53,10 +66,12 @@ class MyAction(
                     }
                 }
         }
+    }
 
+    fun processLibrariesImplementation() {
         val fileLibraryProjectContent = gradleFiles.readFileContent(fileModuleProject)
         if (!fileLibraryProjectContent.isNullOrEmpty()) {
-            fileLibraryProjectContent.lines()
+            val libreriesList = fileLibraryProjectContent.lines()
                 .mapIndexed { index, line -> index to line }
                 .filter { (_, line) ->
                     line.contains("implementation(\"") ||
@@ -66,7 +81,8 @@ class MyAction(
                             line.contains("debugImplementation(\"") ||
                             line.contains("ksp(\"")
                 }
-                .forEach { (index, line) ->
+
+            libreriesList.forEach { (index, line) ->
                     val libraryEntry = libraryGradle.createLibraryEntry(line)
 
                     try {
@@ -83,6 +99,5 @@ class MyAction(
                     }
                 }
         }
-
     }
 }
