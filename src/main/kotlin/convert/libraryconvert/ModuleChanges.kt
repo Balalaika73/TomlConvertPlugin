@@ -1,27 +1,38 @@
+package convert.libraryconvert
+
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
+/*
+import entries.DependencyEntry
+import entries.ModuleEntry
 
 class ModuleChanges(
     private val fileToml: VirtualFile,
     private val fileModuleProject: VirtualFile,
     private val project: Project
 ) {
-    fun convertModuleToToml(line: String, lineNumber: Int) {
-        val implParts = line.split(':')
-        val groupImpl = implParts[0].split('"')[1]
-        val nameImpl = implParts[1]
-        val versImpl = implParts[2].dropLast(2)
+    fun convertModuleToToml(line: String, lineNumber: Int): Pair<DependencyEntry, ModuleEntry>? {
+        val moduleContent = line.substringAfter('(').substringBeforeLast(')')
+        val (group, name, version) = moduleContent.split(':').takeIf { it.size ==3 }
+            ?: throw IllegalArgumentException("Invalid module format in line $lineNumber: '$line'")
 
-        var versName = groupImpl.split('.').last() + "Version"
-        val resString = "$nameImpl = {group = \"$groupImpl\", name = \"$nameImpl\", version.ref = \"$versName\" }"
+        val cleanGroup = group.removeSurrounding("\"")
+        val versionRef = cleanGroup.split('.').last() + "Version"
 
-        versName = "$versName = \"$versImpl\""
+        val dependencyEntry = DependencyEntry(
+            moduleName = name,
+            group = cleanGroup,
+            versionRef = versionRef
+        )
 
-        val implId = nameImpl.replace('-', '.')
+        val versionEntry = ModuleEntry(
+            versionRef = versionRef,
+            version = version.removeSuffix("\"") // Handle trailing quote if present
+        )
 
-        writeModuleToToml(lineNumber, resString, versName, implId)
+        return dependencyEntry to versionEntry
     }
 
     private fun writeModuleToToml(lineNumber : Int, tomlEntry: String, versionLine: String, pluginId: String) {
@@ -66,4 +77,4 @@ class ModuleChanges(
             }
         }
     }
-}
+}*/

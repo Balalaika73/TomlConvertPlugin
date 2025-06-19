@@ -38,4 +38,9 @@
         </group>
 
     </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationInitializedListener implementation="di.MyPluginStartupActivity"/>
+    </extensions>
+
 </idea-plugin>
