@@ -61,7 +61,7 @@ class PluginGradleImpl(
         }
     }
 
-    override fun writePluginToAppGradle(pluginEntry: PluginEntry, lineIndex: Int) {
+    override fun writePluginToProjectGradle(pluginEntry: PluginEntry, lineIndex: Int) {
         val aliasLine = pluginEntry.convertToAliasLine()
         val lines = fileAppGradle.text.lines()
 

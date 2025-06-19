@@ -7,6 +7,6 @@ interface PluginGradle {
     fun getPluginVersion(line: String): String
     fun createPluginEntry(line: String): PluginEntry
     fun writePluginToToml(pluginEntry: PluginEntry)
-    fun writePluginToAppGradle(pluginEntry: PluginEntry, lineIndex: Int)
+    fun writePluginToProjectGradle(pluginEntry: PluginEntry, lineIndex: Int)
     fun writePluginToModuleGradle(pluginEntry: PluginEntry, lineIndex: Int)
 }

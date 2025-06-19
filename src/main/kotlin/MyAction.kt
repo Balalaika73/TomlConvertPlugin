@@ -36,7 +36,7 @@ class MyAction(
                     try {
                         WriteCommandAction.runWriteCommandAction(project){
                             pluginGradle.writePluginToToml(pluginEntry)
-                            pluginGradle.writePluginToAppGradle(pluginEntry, index+1)
+                            pluginGradle.writePluginToProjectGradle(pluginEntry, index+1)
                             pluginGradle.writePluginToModuleGradle(pluginEntry, index+1)
                         }
                     } catch (e: Exception) {
