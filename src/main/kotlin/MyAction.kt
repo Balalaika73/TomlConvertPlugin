@@ -7,6 +7,7 @@ import org.koin.java.KoinJavaComponent.getKoin
 import projectfiles.interfaces.PluginGradle
 import projectfiles.interfaces.GradleFiles
 import com.intellij.openapi.ui.Messages
+import projectfiles.interfaces.LibraryGradle
 
 class MyAction(
 ): AnAction() {
@@ -24,11 +25,15 @@ class MyAction(
             parametersOf(fileToml, fileModuleProject, filePluginProject, project)
         }
 
-        val content = gradleFiles.readFileContent(filePluginProject)
-        if (!content.isNullOrEmpty()) {
-            content.lines()
-                .mapIndexed { index, line -> index to line } // сначала пронумеровали все строки
-                .filter { (_, line) -> line.contains("id(") } // потом отфильтровали
+        val libraryGradle: LibraryGradle = getKoin().get<LibraryGradle> {
+            parametersOf(fileToml, fileModuleProject, project)
+        }
+
+        val filePluginProjectConvent = gradleFiles.readFileContent(filePluginProject)
+        if (!filePluginProjectConvent.isNullOrEmpty()) {
+            filePluginProjectConvent.lines()
+                .mapIndexed { index, line -> index to line }
+                .filter { (_, line) -> line.contains("id(") }
                 .forEach { (index, line) ->
 
                     val pluginEntry = pluginGradle.createPluginEntry(line)
@@ -48,5 +53,38 @@ class MyAction(
                     }
                 }
         }
+
+        val fileLibraryProjectContent = gradleFiles.readFileContent(fileModuleProject)
+        if (!fileLibraryProjectContent.isNullOrEmpty()) {
+            fileLibraryProjectContent.lines()
+                .mapIndexed { index, line -> index to line }
+                .filter { (_, line) ->
+                    line.contains("implementation(\"") ||
+                            line.contains("testImplementation(\"") ||
+                            line.contains("androidTestImplementation(\"")
+                }
+                .forEach { (index, line) ->
+                    val libraryEntry = libraryGradle.createLibraryEntry(line)
+                    Messages.showInfoMessage(
+                        project,
+                        "Обработка строки #${index + 1}:\n$line",
+                        "Найден id(...)"
+                    )
+
+                    try {
+                        WriteCommandAction.runWriteCommandAction(project) {
+                            libraryGradle.writeLibraryToToml(libraryEntry)
+                            libraryGradle.writeLibraryToModuleGradle(libraryEntry, index)
+                        }
+                    } catch (e: Exception) {
+                        Messages.showInfoMessage(
+                            project,
+                            "Ошибка ${e.message}",
+                            "Создание библиотеки"
+                        )
+                    }
+                }
+        }
+
     }
 }
