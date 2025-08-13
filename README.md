@@ -69,5 +69,5 @@ After dependencies convert:
 
 ## Compatibility
 
-- IntelliJ IDEA version: 2024.1 and above (maybe)
-- Android Studio version: 2024.1 and above (maybe)
+- IntelliJ IDEA version: 2024.1 and above
+- Android Studio version: 2024.1 and above
