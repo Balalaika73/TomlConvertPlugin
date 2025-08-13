@@ -15,7 +15,6 @@ class ListDialog(
         libraries.forEach { put(it.second, true) }
     }
 
-    // Храним ссылки на все чекбоксы
     private val pluginCheckboxes = mutableMapOf<String, Cell<JBCheckBox>>()
     private val libraryCheckboxes = mutableMapOf<String, Cell<JBCheckBox>>()
 

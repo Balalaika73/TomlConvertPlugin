@@ -88,28 +88,39 @@ class PluginGradleImpl(
         val aliasLine = pluginEntry.convertToModuleAliasLine()
         val pluginId = pluginEntry.pluginId
 
-        // Находим блок plugins
-        val pluginsStart = text.indexOf("plugins")
-        if (pluginsStart == -1) return
+        val (blockStart, blockEnd) = detectPluginsBlock(text)
 
-        val blockStart = text.indexOf("{", pluginsStart)
-        if (blockStart == -1) return
-
-        val blockEnd = text.indexOf("}", blockStart)
-        if (blockEnd == -1) return
+        if (blockStart == -1 || blockEnd == -1) {
+            Messages.showErrorDialog(project, "Не удалось найти блок plugins в build.gradle", "Ошибка")
+            return
+        }
 
         val pluginPattern = Regex("""id\s*\(["']${Regex.escape(pluginId)}["']\)[^\n]*""")
         val matchResult = pluginPattern.find(text, blockStart)
 
         if (matchResult != null) {
-            val start = matchResult.range.first
-            val end = matchResult.range.last + 1
-            fileModuleGradle.replaceString(start, end, aliasLine)
+            fileModuleGradle.replaceString(
+                matchResult.range.first,
+                matchResult.range.last + 1,
+                aliasLine
+            )
         } else {
-            if (!text.contains(aliasLine)) {
-                val withIndent = "\t$aliasLine\n"
-                fileModuleGradle.insertString(blockEnd, withIndent)
+            if (!text.substring(blockStart, blockEnd).contains(aliasLine)) {
+                val withIndent = "\n\t$aliasLine"
+                fileModuleGradle.insertString(blockEnd - 1, withIndent)
             }
         }
+    }
+
+    private fun detectPluginsBlock(text: String): Pair<Int, Int>{
+        val pluginsStart = text.indexOf("plugins")
+        if (pluginsStart == -1) return Pair(0,0)
+
+        val blockStart = text.indexOf("{", pluginsStart)
+        if (blockStart == -1) return Pair(0,0)
+
+        val blockEnd = text.indexOf("}", blockStart)
+        if (blockEnd == -1) return Pair(0,0)
+        return Pair(blockStart, blockEnd)
     }
 }
